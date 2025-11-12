@@ -1,5 +1,7 @@
-        # 7. Force Network Location to Private
+        # 7. Force Network Location to Private (with safety checks)
         $connectionProfiles = @(Get-NetConnectionProfile)
+        $profilesToUpdate = @()
+
         foreach ($profile in $connectionProfiles) {
             $profileInfo = @{
                 Name = $profile.Name
@@ -7,18 +9,59 @@
                 InterfaceIndex = $profile.InterfaceIndex
                 NetworkCategory = $profile.NetworkCategory
             }
+
             $serializedProfile = $profileInfo | ConvertTo-Json -Compress
             Add-Content $logPath "## Default_Secure: NetworkProfile = $serializedProfile"
+
+            $descriptor = if ($profile.InterfaceAlias) {
+                $profile.InterfaceAlias
+            }
+            elseif ($profile.Name) {
+                $profile.Name
+            }
+            else {
+                "InterfaceIndex:$($profile.InterfaceIndex)"
+            }
+
+            if ($profile.NetworkCategory -eq 'DomainAuthenticated') {
+                Add-Content $logPath "## SKIP NetworkLocationCategory[$descriptor] = DomainAuthenticated"
+                continue
+            }
+
+            if ($profile.NetworkCategory -eq 'Private') {
+                Add-Content $logPath "## SKIP NetworkLocationCategory[$descriptor] = AlreadyPrivate"
+                continue
+            }
+
+            $profilesToUpdate += [pscustomobject]@{
+                Profile = $profile
+                Descriptor = $descriptor
+            }
         }
 
-        if ($connectionProfiles.Count -gt 0) {
-            $connectionProfiles | Set-NetConnectionProfile -NetworkCategory Private
+        if ($profilesToUpdate.Count -gt 0) {
+            foreach ($item in $profilesToUpdate) {
+                try {
+                    Set-NetConnectionProfile -InterfaceIndex $item.Profile.InterfaceIndex -NetworkCategory Private -ErrorAction Stop
+                    Add-Content $logPath "## SET NetworkLocationCategory[$($item.Descriptor)] = Private"
+                }
+                catch {
+                    Add-Content $logPath "!! ERROR: Failed to set NetworkLocationCategory[$($item.Descriptor)] = Private : $_"
+                }
+            }
         }
-        Add-Content $logPath "## SET NetworkLocationCategory = Private"
+        else {
+            Add-Content $logPath "## INFO: NetworkLocationCategory already compliant or skipped."
+        }
                 '## Default_(Secure|Tradecraft): NoDriveTypeAutoRun\s*=\s*(\d+)' {
                     $value = [int]$Matches[1]
-                    Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer" -Name "NoDriveTypeAutoRun" -Value $value -Force
-                    Add-Content $lastLog.FullName "## UNDO: NoDriveTypeAutoRun = $value"
+                    try {
+                        Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer" -Name "NoDriveTypeAutoRun" -Value $value -Force -ErrorAction Stop
+                        Add-Content $lastLog.FullName "## UNDO: NoDriveTypeAutoRun = $value"
+                    }
+                    catch {
+                        Add-Content $lastLog.FullName "!! ERROR: Failed to restore NoDriveTypeAutoRun to $value : $_"
+                    }
                 }
 
                 '## Default_(Secure|Tradecraft): NetworkProfile = (?<json>\{.+\})' {
@@ -70,10 +113,16 @@
                 # Remote Registry
                 '## Default_(Secure|Tradecraft): RemoteRegistry\.StartType\s*=\s*(\w+)' {
                     $startup = $Matches[1]
-                    Set-Service -Name RemoteRegistry -StartupType $startup
+                    try {
+                        Set-Service -Name RemoteRegistry -StartupType $startup -ErrorAction Stop
+                        Add-Content $lastLog.FullName "## UNDO: RemoteRegistry.StartType = $startup"
+                    }
+                    catch {
+                        Add-Content $lastLog.FullName "!! ERROR: Failed to restore RemoteRegistry.StartType to $startup : $_"
+                    }
             '## Default_.*: NoDriveTypeAutoRun\s*=\s*(\d+)' {
                 $v = $Matches[1]
-                $undoScript += 'Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer" -Name "NoDriveTypeAutoRun" -Value ' + $v + ' -Force'
+                $undoScript += 'if (-not (Test-Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Policies")) { New-Item -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion" -Name "Policies" -Force | Out-Null }; if (-not (Test-Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer")) { New-Item -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Policies" -Name "Explorer" -Force | Out-Null }; Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer" -Name "NoDriveTypeAutoRun" -Value ' + $v + ' -Force'
             }
             '## Default_.*: NetworkProfile = (?<json>\{.+\})' {
                 try {
@@ -101,7 +150,7 @@
             }
             '## Default_.*: RemoteRegistry\.StartType\s*=\s*(\w+)' {
                 $v = $Matches[1]
-                $undoScript += "Set-Service -Name RemoteRegistry -StartupType $v"
+                $undoScript += "if (Get-Service -Name RemoteRegistry -ErrorAction SilentlyContinue) { Set-Service -Name RemoteRegistry -StartupType $v } else { Write-Warning \"RemoteRegistry service not present for undo.\" }"
 $secureButton.Add_Click({
     if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole("Administrator")) {
         Start-Process powershell -Verb runAs -ArgumentList "-File `"$PSCommandPath`""
@@ -118,3 +167,17 @@ $secureButton.Add_Click({
     [System.Windows.Forms.MessageBox]::Show("Secure Mode launched. Changes will be logged to:`n$logPath", "Secure Mode")
 
     try {
+        $warningMessage = "Secure Mode core hardening steps are not present in this build."
+        Add-Content $logPath "!! WARNING: $warningMessage"
+        Write-Warning $warningMessage
+        [System.Windows.Forms.MessageBox]::Show($warningMessage, "Secure Mode") | Out-Null
+    }
+    catch {
+        Add-Content $logPath "!! ERROR: Secure Mode failed : $_"
+        [System.Windows.Forms.MessageBox]::Show("Secure Mode encountered an error. Review log for details.", "Secure Mode") | Out-Null
+    }
+    finally {
+        $completionTimestamp = Get-Date -Format "yyyyMMdd-HHmmss"
+        Add-Content $logPath "=== HoneyBadger Secure Mode Completed @ $completionTimestamp ==="
+    }
+})
