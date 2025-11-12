@@ -23,6 +23,7 @@ _Automates hardened lab environments, adversary emulation, and detection validat
 |--------|---------|
 | `PimpMyWindows.ps1` | GUI to toggle Secure Mode or Tradecraft Mode on Windows 11 |
 | `HBV-Core.ps1` | Master script for system tuning, logging, exclusions |
+| `HBV-HealthCheck.ps1` | Validates host prerequisites and exports a readiness report |
 | `BOF_Hunter_GUI.ps1` | YARA + Volatility GUI for BOF memory triage |
 | `repo_hunter.ps1` | Clones & parses top cyber threat repos |
 | `auto_parse_hunting_results.ps1` | Builds Sigma/YARA rules from hunting results |
@@ -47,7 +48,19 @@ _Automates hardened lab environments, adversary emulation, and detection validat
    .\BOF_Hunter_GUI.ps1
    ```
 
-4. Auto-generate detection rules:
+4. Validate the host posture:
+   ```powershell
+   .\HBV-HealthCheck.ps1
+   ```
+
+5. Auto-generate detection rules:
    ```powershell
    .\auto_parse_hunting_results.ps1
    ```
+
+## 🔍 Health Check Insights
+
+`HBV-HealthCheck.ps1` inspects the local workstation for common lab misconfigurations before you launch a full orchestration run.
+It highlights missing prerequisites (such as Git or networking cmdlets) and exports a JSON report to `%USERPROFILE%\HoneyCoreLogs` that
+can be archived with other HBV artefacts. Use the `-NoExport` switch to suppress file output or provide `-OutputPath` to control
+where the report is written.

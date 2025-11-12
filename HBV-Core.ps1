@@ -9,6 +9,7 @@
       • Optionally generates an undo script for the last posture change.
       • Drives repo_hunter.ps1 to maintain a local threat-intel snapshot.
       • Summarises hunting artefacts with auto_parse_hunting_results.ps1.
+      • Captures environment readiness reports through HBV-HealthCheck.ps1.
 
     The script writes an execution log under %USERPROFILE%\HoneyCoreLogs and
     returns a summary object for automation scenarios.
@@ -37,6 +38,10 @@ param(
     [string]$HuntInputPath,
 
     [string]$HuntSummaryPath,
+
+    [switch]$RunHealthCheck,
+
+    [string]$HealthReportPath,
 
     [switch]$DryRun,
 
@@ -87,6 +92,7 @@ $summary = [ordered]@{
     UndoScript         = $null
     RepoSnapshot       = $null
     HuntSummary        = $null
+    HealthReport       = $null
     DryRun             = [bool]$DryRun
     Timestamp          = Get-Date
 }
@@ -174,6 +180,15 @@ try {
         $huntResult = Invoke-HBVModule -ScriptPath (Get-ModulePath 'auto_parse_hunting_results.ps1') -Arguments $huntArgs
         if ($huntResult) {
             $summary.HuntSummary = $huntResult.OutputPath
+        }
+    }
+
+    if ($RunHealthCheck) {
+        $healthArgs = @{ Quiet = $true }
+        if ($HealthReportPath) { $healthArgs.OutputPath = $HealthReportPath }
+        $healthResult = Invoke-HBVModule -ScriptPath (Get-ModulePath 'HBV-HealthCheck.ps1') -Arguments $healthArgs
+        if ($healthResult) {
+            $summary.HealthReport = $healthResult
         }
     }
 }
