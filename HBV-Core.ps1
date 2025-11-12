@@ -101,7 +101,18 @@ function Invoke-HBVModule {
         throw "Module '$ScriptPath' was not found."
     }
 
-    Write-CoreLog -Message "## EXECUTE: $([IO.Path]::GetFileName($ScriptPath)) $($Arguments.GetEnumerator() | ForEach-Object { "-$($_.Key) $($_.Value)" } | Sort-Object | -join ' ')"
+    $argumentSummary = ''
+    if ($Arguments) {
+        $argumentSummary = ($Arguments.GetEnumerator() |
+            ForEach-Object { "-$($_.Key) $($_.Value)" } |
+            Sort-Object) -join ' '
+        if ($argumentSummary) {
+            $argumentSummary = " $argumentSummary"
+        }
+    }
+
+    $moduleName = [IO.Path]::GetFileName($ScriptPath)
+    Write-CoreLog -Message "## EXECUTE: $moduleName$argumentSummary"
 
     if ($DryRun) {
         Write-CoreLog -Message '## INFO: DryRun flag set – execution skipped.' -Color Yellow
