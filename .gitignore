@@ -1,0 +1,160 @@
+# ── OS Artifacts ──────────────────────────────────────────────────────────────
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+
+# ── Editors & IDEs ────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+.vs/
+*.code-workspace
+
+# ── Credentials & Secrets ─────────────────────────────────────────────────────
+# NEVER commit these
+id_rsa
+id_rsa.pub
+id_ed25519
+id_ed25519.pub
+id_ecdsa
+id_ecdsa.pub
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+.env
+.env.*
+!.env.example
+!.env.*.example
+credentials
+credentials.json
+secrets.json
+secrets.yaml
+secrets.yml
+.npmrc
+.pypirc
+htpasswd
+*.htpasswd
+config/api_keys.json
+config/secrets.json
+
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+.venv/
+venv/
+env/
+ENV/
+pip-log.txt
+pip-delete-this-directory.txt
+.pytest_cache/
+.coverage
+htmlcov/
+*.pyo
+
+# ── PowerShell ────────────────────────────────────────────────────────────────
+# PS output artifacts
+*.ps1xml
+!*.format.ps1xml
+!*.types.ps1xml
+
+# ── Rust ──────────────────────────────────────────────────────────────────────
+target/
+Cargo.lock
+# (keep Cargo.lock for binaries, remove above line if this is an app not a lib)
+
+# ── Go ────────────────────────────────────────────────────────────────────────
+*.exe
+*.exe~
+*.test
+*.out
+vendor/
+
+# ── Node / JS / TS ────────────────────────────────────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnp
+.pnp.js
+.next/
+dist/
+.cache/
+*.tsbuildinfo
+
+# ── .NET / C# ─────────────────────────────────────────────────────────────────
+obj/
+bin/
+*.user
+*.suo
+*.cache
+*.orig
+_TestResults/
+packages/
+*.nupkg
+
+# ── Docker ────────────────────────────────────────────────────────────────────
+docker-compose.override.yml
+# (keep docker-compose.yml itself — that's intentional)
+
+# ── Security Lab Artifacts ────────────────────────────────────────────────────
+# Scan output — don't commit results
+loot/
+results/
+*.xml.bak
+nmap-output/
+*.nmap
+*.gnmap
+
+# PCAP files — can contain sensitive traffic
+*.pcap
+*.pcapng
+*.cap
+
+# Compiled payloads / staged artifacts
+*.bin
+!firmware*.bin
+*.shellcode
+
+# Log files
+*.log
+logs/
+
+# ── HBV-Specific ──────────────────────────────────────────────────────────────
+HoneyCoreLogs/
+*.hbv-report.json
+# Keep: *.hbv-report.json.example
